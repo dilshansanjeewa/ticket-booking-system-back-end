@@ -1,5 +1,6 @@
 package icet.edu.controller;
 
+import icet.edu.model.dto.PriceCalculationResult;
 import icet.edu.model.dto.SeatsDTO;
 import icet.edu.service.BookingService;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,8 @@ public class BookingController {
     private final BookingService bookingService;
 
     @GetMapping("/seat/hold/{seatId}/{userId}")
-    public SeatsDTO holdSeat(@PathVariable Long seatId, @PathVariable Long userId){
-        SeatsDTO seatsDTO = bookingService.holdSeat(seatId, userId);
-        return seatsDTO;
+    public PriceCalculationResult holdSeat(@PathVariable Long seatId, @PathVariable Long userId){
+        PriceCalculationResult priceCalculationResult = bookingService.holdSeat(seatId, userId);
+        return priceCalculationResult;
     }
 }

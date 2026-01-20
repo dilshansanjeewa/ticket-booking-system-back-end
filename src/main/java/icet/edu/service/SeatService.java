@@ -1,8 +1,8 @@
 package icet.edu.service;
 
-import icet.edu.model.dto.SeatsDTO;
+import icet.edu.model.entity.Seat;
 
 public interface SeatService {
 
-    SeatsDTO findById(Long seatId, Long userId);
+    Seat findById(Long seatId, Long userId);
 }

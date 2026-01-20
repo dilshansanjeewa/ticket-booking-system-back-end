@@ -1,5 +1,6 @@
 package icet.edu.service.impl;
 
+import icet.edu.annotation.AuditFailure;
 import icet.edu.model.dto.SeatsDTO;
 import icet.edu.model.entity.Seat;
 import icet.edu.repository.SeatRepository;
@@ -20,8 +21,9 @@ public class SeatServiceImpl implements SeatService {
 
     private static final int HOLD_DURATION = 10;
 
+    @AuditFailure
     @Override
-    public SeatsDTO findById(Long seatId, Long userId) {
+    public Seat findById(Long seatId, Long userId) {
         Seat seat = seatRepository.findById(seatId).orElseThrow(() -> new RuntimeException("Seat not Found"));
         if (seat.getStatus().equals("SOLD")) {
             throw new RuntimeException("Seat is already sold.");
@@ -45,7 +47,7 @@ public class SeatServiceImpl implements SeatService {
                 seat.getEvent().getBasePrice(),
                 seat.getHoldExpiry()
         );
-        return seatsDTO;
+        return seat;
     }
 
     @Scheduled(fixedRate = 60000)
