@@ -4,7 +4,6 @@ import icet.edu.model.dto.SeatsDTO;
 import icet.edu.model.entity.Seat;
 import icet.edu.repository.SeatRepository;
 import icet.edu.service.SeatService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,7 @@ public class SeatServiceImpl implements SeatService {
 
     @Override
     public SeatsDTO findById(Long seatId, Long userId) {
-        Seat seat = seatRepository.findById(1L).orElseThrow(() -> new RuntimeException("Seat not Found"));
+        Seat seat = seatRepository.findById(seatId).orElseThrow(() -> new RuntimeException("Seat not Found"));
         if (seat.getStatus().equals("SOLD")) {
             throw new RuntimeException("Seat is already sold.");
         }
@@ -33,7 +32,7 @@ public class SeatServiceImpl implements SeatService {
         }
 
         seat.setStatus("HELD");
-        seat.setHeldByUserId(null);
+        seat.setHeldByUserId(userId);
 
         seat.setHoldExpiry(LocalDateTime.now().plusMinutes(HOLD_DURATION));
 
@@ -50,26 +49,20 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Scheduled(fixedRate = 60000)
-    @Transactional
-    public void releaseExpiredHolds(){
+    public void releaseExpiredHolds() {
         LocalDateTime now = LocalDateTime.now();
-
         List<Seat> expiredSeats = seatRepository.findByStatusAndHoldExpiryBefore(
                 "HELD", now
         );
 
-        if (expiredSeats.isEmpty()) {
-            return;
+        if (!expiredSeats.isEmpty()) {
+            for (Seat seat : expiredSeats) {
+                seat.setStatus("AVAILABLE");
+                seat.setHeldByUserId(null);
+                seat.setHoldExpiry(null);
+            }
+            seatRepository.saveAll(expiredSeats);
+            System.out.println("Cleaned up " + expiredSeats.size() + " seats.");
         }
-
-        for (Seat seat : expiredSeats) {
-            System.out.println("Releasing expired seat ID: " + seat.getId());
-
-            seat.setStatus("AVAILABLE");
-            seat.setHeldByUserId(null);
-            seat.setHoldExpiry(null);
-        }
-
-        seatRepository.saveAll(expiredSeats);
     }
 }
