@@ -1,0 +1,75 @@
+package icet.edu.service.impl;
+
+import icet.edu.model.dto.SeatsDTO;
+import icet.edu.model.entity.Seat;
+import icet.edu.repository.SeatRepository;
+import icet.edu.service.SeatService;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@RequiredArgsConstructor
+
+@Service
+public class SeatServiceImpl implements SeatService {
+
+    private final SeatRepository seatRepository;
+
+    private static final int HOLD_DURATION = 10;
+
+    @Override
+    public SeatsDTO findById(Long seatId, Long userId) {
+        Seat seat = seatRepository.findById(1L).orElseThrow(() -> new RuntimeException("Seat not Found"));
+        if (seat.getStatus().equals("SOLD")) {
+            throw new RuntimeException("Seat is already sold.");
+        }
+
+        if (seat.getStatus().equals("HELD")) {
+            throw new RuntimeException("Seat is currently held by another user.");
+        }
+
+        seat.setStatus("HELD");
+        seat.setHeldByUserId(null);
+
+        seat.setHoldExpiry(LocalDateTime.now().plusMinutes(HOLD_DURATION));
+
+        Seat savedSeat = seatRepository.save(seat);
+
+        SeatsDTO seatsDTO = new SeatsDTO(
+                seat.getId(),
+                seat.getSeatNumber(),
+                seat.getStatus(),
+                seat.getEvent().getBasePrice(),
+                seat.getHoldExpiry()
+        );
+        return seatsDTO;
+    }
+
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void releaseExpiredHolds(){
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Seat> expiredSeats = seatRepository.findByStatusAndHoldExpiryBefore(
+                "HELD", now
+        );
+
+        if (expiredSeats.isEmpty()) {
+            return;
+        }
+
+        for (Seat seat : expiredSeats) {
+            System.out.println("Releasing expired seat ID: " + seat.getId());
+
+            seat.setStatus("AVAILABLE");
+            seat.setHeldByUserId(null);
+            seat.setHoldExpiry(null);
+        }
+
+        seatRepository.saveAll(expiredSeats);
+    }
+}
